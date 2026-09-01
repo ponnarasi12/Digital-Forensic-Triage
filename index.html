@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FORTRAC — Digital Forensic Triage Dashboard</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vis.js Network for Correlation Graph -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f172a',
+                        cardbg: '#1e293b',
+                        cardborder: '#334155',
+                        critred: '#ef4444',
+                        warnorange: '#f97316',
+                        infoblue: '#3b82f6',
+                        successgreen: '#22c55e'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #0b0f19; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        .glass-panel { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glow-red { box-shadow: 0 0 15px rgba(239, 68, 68, 0.25); }
+        .glow-blue { box-shadow: 0 0 15px rgba(59, 130, 246, 0.25); }
+    </style>
+</head>
+<body class="text-gray-100 min-h-screen pb-12">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-cardborder bg-cardbg px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="bg-red-600/20 text-red-400 p-2.5 rounded-lg border border-red-500/30">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold tracking-wider text-white">FORTRAC</h1>
+                <p class="text-xs text-gray-400 font-mono">AI-Powered Forensic Triage &amp; Evidence Correlation System</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <div class="bg-slate-800 px-4 py-1.5 rounded-full border border-slate-700 text-xs font-mono text-cyan-400">
+                CASE REF #<span>1042</span>
+            </div>
+            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 transition shadow-md">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span>Export NIST Report (PDF)</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
+
+        <!-- Case Banner & Metrics Grid -->
+        <div class="glass-panel p-5 rounded-2xl shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold tracking-wide text-gray-200 uppercase flex items-center space-x-2">
+                    <span>FORENSIC CASE #1042 — STATISTICAL OVERVIEW</span>
+                </h2>
+                <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded">NIST SP 800-86 Compliant</span>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- Total Evidence -->
+                <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
+                    <p class="text-xs uppercase font-bold text-gray-400 tracking-wider">Evidence Artifacts</p>
+                    <p class="text-3xl font-black text-white mt-1">1,284</p>
+                </div>
+                <!-- Critical -->
+                <div class="bg-red-950/40 p-4 rounded-xl border border-red-800/50 glow-red">
+                    <p class="text-xs uppercase font-bold text-red-400 tracking-wider">Critical Threats</p>
+                    <p class="text-3xl font-black text-red-400 mt-1">17</p>
+                </div>
+                <!-- Suspicious -->
+                <div class="bg-orange-950/40 p-4 rounded-xl border border-orange-800/50">
+                    <p class="text-xs uppercase font-bold text-orange-400 tracking-wider">Suspicious Items</p>
+                    <p class="text-3xl font-black text-orange-400 mt-1">64</p>
+                </div>
+                <!-- Timeline Events -->
+                <div class="bg-blue-950/40 p-4 rounded-xl border border-blue-800/50 glow-blue">
+                    <p class="text-xs uppercase font-bold text-blue-400 tracking-wider">Timeline Sequence</p>
+                    <p class="text-3xl font-black text-blue-400 mt-1">327</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2 Column Layout: Timeline + Top Evidence -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Incident Timeline Box -->
+            <div class="glass-panel p-5 rounded-2xl shadow-xl flex flex-col justify-between">
+                <div>
+                    <h3 class="text-md font-bold tracking-wider text-cyan-400 uppercase mb-4 flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>INCIDENT TIMELINE</span>
+                    </h3>
+
+                    <div class="space-y-3 font-mono text-sm">
+                        <div class="flex items-center space-x-3 p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                            <span class="text-cyan-400 font-bold w-16">10:12</span>
+                            <span class="text-gray-400">─</span>
+                            <span class="text-gray-200">USB Connected (SanDisk Ultra E:\)</span>
+                        </div>
+                        <div class="flex items-center space-x-3 p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                            <span class="text-cyan-400 font-bold w-16">10:17</span>
+                            <span class="text-gray-400">─</span>
+                            <span class="text-gray-200">File Downloaded (confidential.zip)</span>
+                        </div>
+                        <div class="flex items-center space-x-3 p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                            <span class="text-cyan-400 font-bold w-16">10:18</span>
+                            <span class="text-gray-400">─</span>
+                            <span class="text-gray-200">Archive Extracted (unknown.dll)</span>
+                        </div>
+                        <div class="flex items-center space-x-3 p-2.5 rounded-lg bg-red-950/40 border border-red-700/60">
+                            <span class="text-red-400 font-bold w-16">10:20</span>
+                            <span class="text-red-400">─</span>
+                            <span class="text-red-200 font-bold">Suspicious Process (suspicious.exe)</span>
+                        </div>
+                        <div class="flex items-center space-x-3 p-2.5 rounded-lg bg-red-950/40 border border-red-700/60">
+                            <span class="text-red-400 font-bold w-16">10:21</span>
+                            <span class="text-red-400">─</span>
+                            <span class="text-red-200 font-bold">External Connection (45.33.21.11:443)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Priority Evidence Box -->
+            <div class="glass-panel p-5 rounded-2xl shadow-xl">
+                <h3 class="text-md font-bold tracking-wider text-red-400 uppercase mb-4 flex items-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <span>TOP PRIORITY EVIDENCE</span>
+                </h3>
+
+                <div class="space-y-3" id="topPriorityList">
+                    <!-- Dynamic rendering via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Investigation Summary -->
+        <div class="glass-panel p-6 rounded-2xl shadow-xl border-l-4 border-indigo-500">
+            <div class="flex items-center space-x-3 mb-3">
+                <div class="bg-indigo-500/20 text-indigo-400 p-2 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <h3 class="text-lg font-bold text-white tracking-wide">AI INVESTIGATION HYPOTHESIS SUMMARY</h3>
+            </div>
+            
+            <p class="text-gray-300 text-sm leading-relaxed">
+                Possible data-exfiltration activity detected. Initial access vector established via removable USB storage, followed by archive extraction and code execution in temporary directory environment.
+            </p>
+
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800 text-xs">
+                    <p class="font-bold text-gray-400 uppercase tracking-wider mb-1">Reconstructed Attack Chain</p>
+                    <p class="text-gray-300 whitespace-pre-line font-mono">USB Ingestion -> Archive Download -> Temp Execution -> Outbound Exfiltration</p>
+                </div>
+                <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800 text-xs">
+                    <p class="font-bold text-emerald-400 uppercase tracking-wider mb-1">Recommended Response Actions</p>
+                    <p class="text-gray-300 whitespace-pre-line">1. Isolate workstation&#10;2. Block destination C2 IP (45.33.21.11)&#10;3. Perform memory analysis and dump volatile RAM</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Evidence Correlation Graph -->
+        <div class="glass-panel p-5 rounded-2xl shadow-xl">
+            <h3 class="text-md font-bold tracking-wider text-cyan-400 uppercase mb-3 flex items-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12H4z"></path></svg>
+                <span>EVIDENCE CORRELATION GRAPH</span>
+            </h3>
+            <div id="evidence-graph" class="w-full h-80 rounded-xl bg-slate-950 border border-slate-800"></div>
+        </div>
+
+    </main>
+
+    <!-- EXPLAIN WHY MODAL DIALOG -->
+    <div id="explainModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="closeExplainModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-4">
+                <span id="modalIcon" class="text-red-500 text-2xl">🔴</span>
+                <div>
+                    <h3 id="modalFileName" class="text-lg font-bold text-white font-mono">suspicious.exe</h3>
+                    <p id="modalRiskScore" class="text-xs text-red-400 font-bold uppercase">RISK SCORE: 94/100 (CRITICAL)</p>
+                </div>
+            </div>
+
+            <div class="bg-red-950/30 border border-red-900/50 rounded-xl p-4 mb-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-xs font-bold text-red-400 uppercase tracking-wider">WHY IS THIS HIGH RISK?</h4>
+                    <span id="modalConfidence" class="text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">Confidence: 91%</span>
+                </div>
+                <ul id="modalReasonsList" class="space-y-2 text-sm text-gray-200">
+                    <!-- Populated dynamically via JS -->
+                </ul>
+            </div>
+
+            <div class="bg-slate-800/60 rounded-xl p-3 border border-slate-700/60 mb-4">
+                <p class="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2">Correlated Graph Neighbors</p>
+                <div id="modalNeighbors" class="space-y-1 text-xs text-gray-300 font-mono">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <button onclick="closeExplainModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-sm border border-slate-600 transition">
+                Close Explanation
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Data & Logic -->
+    <script>
+        const artifacts = [
+            {
+                id: 1,
+                fileName: 'suspicious.exe',
+                filePath: 'C:\\Users\\Victim\\AppData\\Local\\Temp\\suspicious.exe',
+                riskScore: 94,
+                riskLevel: 'CRITICAL',
+                confidencePct: 94,
+                reasons: [
+                    'Executable launched from temporary user directory (%TEMP%)',
+                    'Established outbound network connection to unrated IP (45.33.21.11:443)',
+                    'Preceded by archive extraction event (confidential.zip)'
+                ],
+                correlatedArtifacts: [
+                    { fileName: 'confidential.zip', relation: 'EXTRACTED_FROM' },
+                    { fileName: '45.33.21.11', relation: 'CONNECTED_TO' }
+                ]
+            },
+            {
+                id: 2,
+                fileName: 'unknown.dll',
+                filePath: 'C:\\Windows\\System32\\Drivers\\unknown.dll',
+                riskScore: 88,
+                riskLevel: 'CRITICAL',
+                confidencePct: 89,
+                reasons: [
+                    'Unsigned driver DLL dropped in System32',
+                    'Persistence registry key created under HKLM\\Software\\Run'
+                ],
+                correlatedArtifacts: [
+                    { fileName: 'suspicious.exe', relation: 'LOADED_BY' }
+                ]
+            },
+            {
+                id: 3,
+                fileName: 'confidential.zip',
+                filePath: 'E:\\Downloads\\confidential.zip',
+                riskScore: 76,
+                riskLevel: 'SUSPICIOUS',
+                confidencePct: 82,
+                reasons: [
+                    'Downloaded from external IP via web browser',
+                    'Time proximity within 1 minute of USB storage insertion'
+                ],
+                correlatedArtifacts: [
+                    { fileName: 'SanDisk Ultra E:\\', relation: 'STORED_ON' }
+                ]
+            },
+            {
+                id: 4,
+                fileName: '45.33.21.11:443',
+                filePath: 'Network Sysmon Event 3 (Outbound SSL/TLS)',
+                riskScore: 82,
+                riskLevel: 'CRITICAL',
+                confidencePct: 88,
+                reasons: [
+                    'Known threat intelligence flagged IP address',
+                    'High volumetric data transfer post-execution'
+                ],
+                correlatedArtifacts: [
+                    { fileName: 'suspicious.exe', relation: 'CONNECTED_TO' }
+                ]
+            }
+        ];
+
+        function renderTopPriority() {
+            const container = document.getElementById('topPriorityList');
+            container.innerHTML = '';
+            artifacts.forEach(art => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-3 rounded-xl bg-slate-800/80 border border-slate-700 hover:border-slate-600 transition';
+                
+                const dotColor = art.riskScore >= 80 ? '🔴' : (art.riskScore >= 50 ? '🟠' : '🔵');
+                const scoreColor = art.riskScore >= 80 ? 'text-red-400 border-red-800' : 'text-orange-400 border-orange-800';
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="text-lg">${dotColor}</span>
+                        <div>
+                            <p class="font-mono font-bold text-white text-sm">${art.fileName}</p>
+                            <p class="text-xs text-gray-400 truncate max-w-xs">${art.filePath}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="font-mono font-black text-sm px-2.5 py-1 rounded bg-slate-900 border ${scoreColor}">${art.riskScore}/100</span>
+                        <button onclick="openExplainModal(${art.id})" class="bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-indigo-500/40 transition">
+                            Explain Why
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function openExplainModal(id) {
+            const data = artifacts.find(a => a.id === id);
+            if (!data) return;
+
+            document.getElementById('modalFileName').innerText = data.fileName;
+            document.getElementById('modalRiskScore').innerText = `RISK SCORE: ${data.riskScore}/100 (${data.riskLevel})`;
+            document.getElementById('modalConfidence').innerText = `Confidence: ${data.confidencePct}%`;
+
+            const list = document.getElementById('modalReasonsList');
+            list.innerHTML = '';
+            data.reasons.forEach(r => {
+                const li = document.createElement('li');
+                li.className = 'flex items-start space-x-2';
+                li.innerHTML = `<span class="text-emerald-400">✓</span><span>${r}</span>`;
+                list.appendChild(li);
+            });
+
+            const neighbors = document.getElementById('modalNeighbors');
+            neighbors.innerHTML = '';
+            data.correlatedArtifacts.forEach(c => {
+                const div = document.createElement('div');
+                div.innerText = `• ${c.fileName} (${c.relation})`;
+                neighbors.appendChild(div);
+            });
+
+            document.getElementById('explainModal').classList.remove('hidden');
+            document.getElementById('explainModal').classList.add('flex');
+        }
+
+        function closeExplainModal() {
+            document.getElementById('explainModal').classList.add('hidden');
+            document.getElementById('explainModal').classList.remove('flex');
+        }
+
+        // Render Correlation Graph
+        window.addEventListener('DOMContentLoaded', () => {
+            renderTopPriority();
+
+            const graphData = {
+                nodes: [
+                    { id: 1, label: 'SanDisk Ultra (E:\\)', group: 'INFO', value: 15 },
+                    { id: 2, label: 'confidential.zip', group: 'SUSPICIOUS', value: 30 },
+                    { id: 3, label: 'suspicious.exe', group: 'CRITICAL', value: 50 },
+                    { id: 4, label: 'unknown.dll', group: 'CRITICAL', value: 45 },
+                    { id: 5, label: '45.33.21.11:443', group: 'CRITICAL', value: 40 }
+                ],
+                edges: [
+                    { from: 1, to: 2, label: 'STORED_ON' },
+                    { from: 2, to: 3, label: 'EXTRACTED_FROM' },
+                    { from: 3, to: 4, label: 'LOADED_BY' },
+                    { from: 3, to: 5, label: 'CONNECTED_TO' }
+                ]
+            };
+
+            const container = document.getElementById('evidence-graph');
+            const nodes = new vis.DataSet(graphData.nodes.map(n => ({
+                id: n.id,
+                label: n.label,
+                color: n.group === 'CRITICAL' ? '#ef4444' : (n.group === 'SUSPICIOUS' ? '#f97316' : '#3b82f6'),
+                font: { color: '#ffffff', face: 'monospace' },
+                shape: 'dot',
+                size: Math.max(12, n.value / 2)
+            })));
+
+            const edges = new vis.DataSet(graphData.edges.map(e => ({
+                from: e.from,
+                to: e.to,
+                label: e.label,
+                font: { color: '#94a3b8', size: 10 },
+                color: { color: '#475569' }
+            })));
+
+            new vis.Network(container, { nodes, edges }, { physics: { stabilization: true } });
+        });
+    </script>
+</body>
+</html>
